@@ -10,8 +10,8 @@ def gaussian(window_size, sigma):
     return gauss/gauss.sum()
 
 
-def create_window(window_size, channel=1):
-    _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
+def create_window(window_size, channel=1, sigma=1.5):
+    _1D_window = gaussian(window_size, sigma).unsqueeze(1)
     _2D_window = _1D_window.mm(
         _1D_window.t()).float().unsqueeze(0).unsqueeze(0)
     window = _2D_window.expand(
@@ -132,12 +132,13 @@ class SSIM(torch.nn.Module):
 
 
 class MSSSIM(torch.nn.Module):
-    def __init__(self, window_size=11, size_average=True, channel=3):
+    def __init__(self, window_size=11, size_average=True, channel=3, normalize=False):
         super(MSSSIM, self).__init__()
         self.window_size = window_size
         self.size_average = size_average
         self.channel = channel
+        self.normalize = normalize
 
     def forward(self, img1, img2):
         # TODO: store window between calls if possible
-        return msssim(img1, img2, window_size=self.window_size, size_average=self.size_average)
+        return msssim(img1, img2, window_size=self.window_size, size_average=self.size_average, normalize=self.normalize)

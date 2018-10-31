@@ -128,8 +128,8 @@ def __scale_height(img, target_height):
     m = (target_width - 1) // mult
     w = (m + 1) * mult
 
-    if target_width != w:
-        __print_size_warning(target_width, target_height, w, h)
+    # if target_width != w:
+    #     __print_size_warning(target_width, target_height, w, h)
 
     return img.resize((w, h), Image.BICUBIC)
 

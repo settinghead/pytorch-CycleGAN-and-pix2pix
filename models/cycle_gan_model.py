@@ -3,7 +3,7 @@ import itertools
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
-from .msssim import MSSSIM
+from .msssim import MSSSIM, gaussian, create_window
 
 
 class CycleGANModel(BaseModel):
@@ -66,8 +66,15 @@ class CycleGANModel(BaseModel):
             self.criterionGAN = networks.GANLoss(
                 use_lsgan=not opt.no_lsgan).to(self.device)
             self.criterionCycle = torch.nn.L1Loss()
-            self.alpha = 0.25
-            self.criterionCycleMSSSIM = MSSSIM(channel=opt.output_nc)
+            self.alpha = 0.84
+            self.window_size = 11
+            self.sigma = 0.5
+            self.batch_size = opt.batch_size
+            self.g_window = create_window(
+                opt.fineSize, channel=opt.output_nc, sigma=self.sigma
+            ).cuda()
+            self.criterionCycleMSSSIM = MSSSIM(
+                channel=opt.output_nc, normalize=True, window_size=self.window_size)
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()),
@@ -135,13 +142,13 @@ class CycleGANModel(BaseModel):
         # GAN loss D_B(G_B(B))
         self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True)
         # Forward cycle loss
-        self.loss_cycle_A = (self.alpha * self.criterionCycle(
-            self.rec_A, self.real_A) + (1 - self.alpha) * self.criterionCycleMSSSIM(
-            self.rec_A, self.real_A)) * lambda_A
+        self.loss_cycle_A = ((1 - self.alpha) * torch.sum(torch.abs(
+            self.rec_A - self.real_A) * self.g_window) / (self.batch_size * self.output_nc) + self.alpha * (1 - self.criterionCycleMSSSIM(
+                self.rec_A, self.real_A))) * lambda_A
         # Backward cycle loss
-        self.loss_cycle_B = (self.alpha * self.criterionCycle(
-            self.rec_B, self.real_B) + (1 - self.alpha) * self.criterionCycleMSSSIM(
-            self.rec_B, self.real_B)) * lambda_B
+        self.loss_cycle_B = ((1 - self.alpha) * torch.sum(torch.abs(
+            self.rec_B - self.real_B) * self.g_window) / (self.batch_size * self.output_nc) + self.alpha * (1 - self.criterionCycleMSSSIM(
+                self.rec_B, self.real_B))) * lambda_B
         # combined loss
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + \
             self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
