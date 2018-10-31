@@ -23,6 +23,10 @@ class BaseDataset(data.Dataset):
 
 def get_transform(opt):
     transform_list = []
+    # transform_list.append(transforms.Grayscale())
+    transform_list.append(transforms.ColorJitter(
+        brightness=0.1, contrast=0.05)
+    )
     if opt.resize_or_crop == 'resize_and_crop':
         osize = [opt.loadSize, opt.loadSize]
         transform_list.append(transforms.Resize(osize, Image.BICUBIC))
@@ -32,15 +36,31 @@ def get_transform(opt):
     elif opt.resize_or_crop == 'scale_width':
         transform_list.append(transforms.Lambda(
             lambda img: __scale_width(img, opt.fineSize)))
+    elif opt.resize_or_crop == 'for_face_sketch':
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_height(img, opt.loadSize)))
+        transform_list.append(transforms.CenterCrop(
+            (opt.loadSize, opt.fineSize)))
+        transform_list.append(transforms.RandomCrop(opt.fineSize))
+        transform_list.append(transforms.RandomAffine(
+            degrees=5,
+            translate=(0.1, 0),
+            shear=2
+        ))
     elif opt.resize_or_crop == 'scale_width_and_crop':
         transform_list.append(transforms.Lambda(
             lambda img: __scale_width(img, opt.loadSize)))
-        transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'scale_height_and_pad_or_crop':
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_height(img, opt.loadSize)))
+        transform_list.append(transforms.RandomCrop(
+            opt.fineSize, pad_if_needed=True))
     elif opt.resize_or_crop == 'none':
         transform_list.append(transforms.Lambda(
             lambda img: __adjust(img)))
     else:
-        raise ValueError('--resize_or_crop %s is not a valid option.' % opt.resize_or_crop)
+        raise ValueError(
+            '--resize_or_crop %s is not a valid option.' % opt.resize_or_crop)
 
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
@@ -88,6 +108,27 @@ def __scale_width(img, target_width):
     h = (m + 1) * mult
 
     if target_height != h:
+        __print_size_warning(target_width, target_height, w, h)
+
+    return img.resize((w, h), Image.BICUBIC)
+
+
+def __scale_height(img, target_height):
+    ow, oh = img.size
+
+    # the size needs to be a multiple of this number,
+    # because going through generator network may change img size
+    # and eventually cause size mismatch error
+    mult = 4
+    assert target_height % mult == 0, "the target height needs to be multiple of %d." % mult
+    if (oh == target_height and ow % mult == 0):
+        return img
+    h = target_height
+    target_width = int(target_height * ow / oh)
+    m = (target_width - 1) // mult
+    w = (m + 1) * mult
+
+    if target_width != w:
         __print_size_warning(target_width, target_height, w, h)
 
     return img.resize((w, h), Image.BICUBIC)
