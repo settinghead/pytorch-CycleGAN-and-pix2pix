@@ -69,6 +69,7 @@ class CycleGANModel(BaseModel):
             self.alpha = 0.84
             self.window_size = 11
             self.sigma = 0.5
+            self.output_nc = opt.output_nc
             self.batch_size = opt.batch_size
             self.g_window = create_window(
                 opt.fineSize, channel=opt.output_nc, sigma=self.sigma
@@ -143,11 +144,13 @@ class CycleGANModel(BaseModel):
         self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True)
         # Forward cycle loss
         self.loss_cycle_A = ((1 - self.alpha) * torch.sum(torch.abs(
-            self.rec_A - self.real_A) * self.g_window) / (self.batch_size * self.output_nc) + self.alpha * (1 - self.criterionCycleMSSSIM(
+            self.rec_A - self.real_A) * self.g_window) / (self.batch_size * self.output_nc) +
+            self.alpha * (1 - self.criterionCycleMSSSIM(
                 self.rec_A, self.real_A))) * lambda_A
         # Backward cycle loss
         self.loss_cycle_B = ((1 - self.alpha) * torch.sum(torch.abs(
-            self.rec_B - self.real_B) * self.g_window) / (self.batch_size * self.output_nc) + self.alpha * (1 - self.criterionCycleMSSSIM(
+            self.rec_B - self.real_B) * self.g_window) / (self.batch_size * self.output_nc) +
+            self.alpha * (1 - self.criterionCycleMSSSIM(
                 self.rec_B, self.real_B))) * lambda_B
         # combined loss
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + \

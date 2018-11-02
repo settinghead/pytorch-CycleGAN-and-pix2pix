@@ -1,5 +1,6 @@
 import torch.utils.data as data
 from PIL import Image
+import PIL
 import torchvision.transforms as transforms
 
 
@@ -21,11 +22,11 @@ class BaseDataset(data.Dataset):
         return 0
 
 
-def get_transform(opt):
+def get_transform(opt, zoom_in=True):
     transform_list = []
     # transform_list.append(transforms.Grayscale())
     transform_list.append(transforms.ColorJitter(
-        brightness=0.1, contrast=0.05)
+        brightness=0.15, contrast=0.1)
     )
     if opt.resize_or_crop == 'resize_and_crop':
         osize = [opt.loadSize, opt.loadSize]
@@ -41,11 +42,14 @@ def get_transform(opt):
             lambda img: __scale_height(img, opt.loadSize)))
         transform_list.append(transforms.CenterCrop(
             (opt.loadSize, opt.fineSize)))
-        transform_list.append(transforms.RandomCrop(opt.fineSize))
+        transform_list.append(transforms.RandomCrop(
+            opt.fineSize))
         transform_list.append(transforms.RandomAffine(
             degrees=5,
             translate=(0.1, 0),
-            shear=2
+            shear=2,
+            scale=(1 if zoom_in else 1, 1.1 if zoom_in else 1),
+            # fillcolor=0xffffff
         ))
     elif opt.resize_or_crop == 'scale_width_and_crop':
         transform_list.append(transforms.Lambda(
