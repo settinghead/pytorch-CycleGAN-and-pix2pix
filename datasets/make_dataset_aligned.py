@@ -11,6 +11,7 @@ def get_file_paths(folder):
             input_path = os.path.abspath(root)
             file_path = os.path.join(input_path, filename)
             if filename.endswith('.png') or filename.endswith('.jpg'):
+                or filename.endswith('.jpeg'):
                 image_file_paths.append(file_path)
 
         break  # prevent descending into subfolders
