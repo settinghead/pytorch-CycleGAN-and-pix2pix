@@ -20,7 +20,7 @@ class TrainOptions(BaseOptions):
                             help='frequency of saving training results to html')
         parser.add_argument('--print_freq', type=int, default=100,
                             help='frequency of showing training results on console')
-        parser.add_argument('--save_latest_freq', type=int, default=1500,
+        parser.add_argument('--save_latest_freq', type=int, default=2500,
                             help='frequency of saving the latest results')
         parser.add_argument('--save_epoch_freq', type=int, default=5,
                             help='frequency of saving checkpoints at the end of epochs')
